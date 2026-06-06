@@ -19,7 +19,7 @@
 | ส่วน | ไฟล์ | หน้าที่ |
 |------|------|---------|
 | **คู่มือ AI** | `SKILL.md` | สอน AI ว่าจะ "สแกนแอป → สร้าง mimic → แก้โค้ดกลับ" อย่างไร (ใช้ Chrome DevTools MCP) |
-| **เครื่องมือ** | `sample-app/design-board.html` | กระดาน Drag & Drop ให้คนรีดีไซน์ (โมเดลเลือกแบบ Figma) |
+| **เครื่องมือ (Dashboard)** | `tool/design-board.html` | กระดานเปล่า generic — Import bundle แล้วลากวางรีดีไซน์ (โมเดล Figma) · ตัวอย่าง TaskFlow อยู่ที่ `sample-app/design-board.html` |
 | **สัญญาข้อมูล** | `schema/element.schema.json` | นิยาม element schema (สิ่งที่ทุกฝ่ายพึ่งพา) |
 | **ตัวอย่าง** | `sample-app/` (= `examples/taskflow/`) | แอปตัวอย่าง (TaskFlow) + ดีไซน์ที่ map แล้ว |
 

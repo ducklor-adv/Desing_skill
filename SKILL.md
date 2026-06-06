@@ -63,19 +63,31 @@ description: Mirror a running web app's UI into a drag-and-drop design board, le
 4. **เลือก selector ที่เสถียร** (ลำดับความชอบ): `#id` > `[data-el="..."]` > class เชิงความหมาย (ไม่ใช่ utility เช่น `.mt-2`) > `tag:nth-of-type`
    → ค่านี้จะเป็น `mapsTo` (กุญแจสวมกลับ)
 
-## PHASE 2 — MIMIC (สร้างหน้าเลียนแบบ)
+## PHASE 2 — MIMIC (สร้างหน้าเลียนแบบ → ไฟล์ bundle)
 1. แปลงผลสแกน → array ของ element schema (ดู `schema/element.schema.json`)
    - แม็ป tag → `type`: `h1..h3→heading`, `p/span→text`, `button→button`, `input/select→input`, `img→image`, container → `box`/`card`
    - ใส่ `mapsTo` = selector ที่เลือก, `locked:false`, `hidden:false`
-2. เขียนเป็น **page** ลง `tfPages` (1 route = 1 page) หรือ export เป็น `pages/<route>.json`
-3. ตรวจด้วยตา: เปิด `design-board.html` ดูว่าหน้าตาใกล้ของจริง (วาง/ขนาด/สีถูก)
-4. รายงานผู้ใช้: "map แล้ว N หน้า, M element ต่อหน้า — เปิดกระดานรีดีไซน์ได้เลย"
+2. รวมทุกหน้าเป็นไฟล์เดียว **`design.bundle.json`** (เขียนลงโฟลเดอร์โปรเจกต์ผู้ใช้):
+   ```jsonc
+   {
+     "designSkill": 1,
+     "app": "ชื่อแอป",
+     "pages": [
+       { "name": "Home",  "route": "/",      "els": [ /* element[] */ ] },
+       { "name": "Login", "route": "/login", "els": [ /* element[] */ ] }
+     ]
+   }
+   ```
+3. บอกผู้ใช้ให้เปิด **`tool/design-board.html`** → กด **⬆ Import** เลือกไฟล์ `design.bundle.json`
+   (Dashboard เปล่าจะสร้างทุกหน้าให้อัตโนมัติ พร้อมรีดีไซน์)
+4. (ถ้าทำได้) ตรวจด้วย MCP/ตา: เทียบหน้าตาบนกระดานกับของจริง
+5. รายงานผู้ใช้: "map แล้ว N หน้า, M element ต่อหน้า → Import เข้า Dashboard แล้วรีดีไซน์ได้เลย"
 
 ## PHASE 3 — (คนทำ) REDESIGN
 ผู้ใช้ลากวางบนกระดาน แล้วกด **บันทึกเวอร์ชัน**. คุณไม่ต้องทำอะไรในเฟสนี้ นอกจากช่วยถ้าถูกถาม
 
 ## PHASE 4 — APPLY (สวมดีไซน์กลับโค้ดจริง)
-1. อ่านเวอร์ชันล่าสุดของหน้าที่ผู้ใช้ระบุ (จาก `tfVersions` ที่ export, หรือไฟล์ design JSON ที่ผู้ใช้ให้)
+1. ให้ผู้ใช้กด **⬇ Export** บน Dashboard → ได้ไฟล์ **`design.bundle.json`** (มีทุกหน้า + els ที่รีดีไซน์แล้ว) → อ่านไฟล์นี้
 2. สำหรับแต่ละ element เทียบ "ของจริง vs ดีไซน์ใหม่" — ดู diff ของ `style`, `x/y/w/h`, `text`
 3. ไปที่โค้ดจริง หา node ตาม `mapsTo` แล้วแก้ **เฉพาะลุค**:
    - สี/ฟอนต์/radius/padding/border → แก้ CSS ของ selector นั้น
