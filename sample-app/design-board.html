@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>TaskFlow — Design Board (UI Map)</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --panel2:#1f2430; --line:#2a3040;
+    --txt:#e6e9ef; --muted:#8b93a7; --accent:#4f8cff; --accent2:#22c55e;
+    --danger:#ef4444;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--txt)}
+  #app{display:grid;grid-template-columns:200px 1fr 280px;grid-template-rows:48px 1fr;height:100vh}
+
+  /* Topbar */
+  #topbar{grid-column:1/4;display:flex;align-items:center;gap:8px;padding:0 12px;background:var(--panel);border-bottom:1px solid var(--line)}
+  #topbar h1{font-size:14px;margin:0;font-weight:600;letter-spacing:.3px}
+  #topbar .spacer{flex:1}
+  .btn{background:var(--panel2);color:var(--txt);border:1px solid var(--line);padding:6px 12px;border-radius:6px;font-size:12px;cursor:pointer}
+  .btn:hover{border-color:var(--accent)}
+  .btn.primary{background:var(--accent);border-color:var(--accent)}
+  .btn.danger:hover{border-color:var(--danger);color:var(--danger)}
+  .btn:disabled{opacity:.35;cursor:not-allowed}
+  .btn:disabled:hover{border-color:var(--line)}
+
+  /* Palette */
+  #palette{background:var(--panel);border-right:1px solid var(--line);padding:10px;overflow:auto}
+  #palette .group{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin:6px 2px}
+  .pal-btn{display:flex;align-items:center;gap:8px;width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:8px 10px;border-radius:6px;margin-bottom:6px;cursor:pointer;font-size:13px;text-align:left}
+  .pal-btn:hover{border-color:var(--accent);transform:translateX(2px)}
+  .pal-btn .ic{width:16px;text-align:center;opacity:.8}
+  /* Element list (แทน palette เดิม) */
+  #elCount{color:var(--muted)}
+  .el-item{display:flex;align-items:center;gap:8px;padding:7px 9px;border:1px solid var(--line);border-radius:6px;margin-bottom:5px;cursor:pointer;background:var(--panel2)}
+  .el-item:hover{border-color:var(--accent)}
+  .el-item.sel{border-color:var(--accent);background:#22304d}
+  .el-item .ic{width:14px;text-align:center;opacity:.8;flex-shrink:0}
+  .el-item .body{flex:1;min-width:0}
+  .el-item .nm{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .el-item .mp{font-size:9px;color:var(--accent2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .el-item .ty{font-size:9px;color:var(--muted);text-transform:uppercase;flex-shrink:0}
+  .el-item .cnt{font-size:9px;color:var(--accent2)}
+  .el-item.child{border-left:2px solid var(--accent)}
+  .el-item .lay-act{font-size:11px;flex-shrink:0;cursor:pointer;opacity:0;transition:opacity .1s;width:15px;text-align:center}
+  .el-item:hover .lay-act{opacity:.65}
+  .el-item .lay-act.on{opacity:1}
+  .el-item .lay-act:hover{transform:scale(1.2);opacity:1}
+  .el-item.is-hidden .nm{opacity:.45;text-decoration:line-through}
+  .el-item.is-hidden .ic{opacity:.45}
+  /* Pages menu */
+  .group .mini{float:right;background:var(--panel2);border:1px solid var(--line);color:var(--txt);width:18px;height:18px;border-radius:4px;cursor:pointer;font-size:12px;line-height:1;padding:0}
+  .group .mini:hover{border-color:var(--accent)}
+  .page-item{display:flex;align-items:center;gap:6px;padding:7px 9px;border:1px solid var(--line);border-radius:6px;margin-bottom:5px;background:var(--panel2);cursor:pointer;font-size:12px}
+  .page-item:hover{border-color:var(--accent)}
+  .page-item.active{border-color:var(--accent2);background:#1c2a22}
+  .page-item .pn{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .page-item .rt{font-size:9px;color:var(--muted)}
+  .page-item .pdel{opacity:0;cursor:pointer;color:var(--muted)}
+  .page-item:hover .pdel{opacity:.7}
+  .page-item .pdel:hover{color:var(--danger);opacity:1}
+  /* Add palette (drag เพื่อสร้าง) */
+  #addPalette{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .add-chip{display:flex;align-items:center;gap:6px;background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:7px 8px;border-radius:6px;font-size:12px;cursor:grab}
+  .add-chip:hover{border-color:var(--accent)}
+  .add-chip:active{cursor:grabbing;opacity:.6}
+  .add-chip .ic{opacity:.85;width:14px;text-align:center}
+  #canvas.drop-hint{box-shadow:0 0 0 2px var(--accent)}
+  /* Settings popover */
+  .pop{position:fixed;top:46px;right:220px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;width:270px;z-index:60;display:none;box-shadow:0 10px 30px #0008}
+  .pop.open{display:block}
+  .pop h3{margin:0 0 10px;font-size:13px}
+  .setrow{display:flex;align-items:center;gap:8px;font-size:12px;margin-bottom:10px}
+  .setrow input[type=number]{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:5px;padding:3px 6px}
+  /* Align toolbar */
+  #alignBar{position:sticky;top:6px;z-index:20;margin:6px auto 0;width:max-content;display:none;gap:4px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:4px}
+  #alignBar.show{display:flex}
+  #alignBar button{background:var(--panel2);border:1px solid var(--line);color:var(--txt);width:30px;height:28px;border-radius:5px;cursor:pointer;font-size:13px}
+  #alignBar button:hover{border-color:var(--accent)}
+  #alignBar .sep{width:1px;background:var(--line);margin:2px}
+  /* lock bar ใน inspector */
+  .lockbar{display:flex;align-items:center;gap:6px;font-size:11px;padding:8px 10px;border-radius:6px;margin-bottom:10px;background:var(--panel2);border:1px solid var(--line);line-height:1.4}
+  .lockbar.is-locked{border-color:#f59e0b;color:#f3c969}
+  .lockbar button{margin-left:auto;flex-shrink:0}
+
+  /* Canvas */
+  #stage{position:relative;overflow:auto;background:
+    linear-gradient(90deg,#171a2133 1px,transparent 1px) 0 0/20px 20px,
+    linear-gradient(#171a2133 1px,transparent 1px) 0 0/20px 20px,
+    var(--bg)}
+  #canvas{position:relative;width:1280px;height:1600px;margin:24px;background:#fff;border-radius:8px;box-shadow:0 0 0 1px var(--line);color:#111}
+  .el{position:absolute;cursor:move;user-select:none;min-width:24px;min-height:20px}
+  .el.selected{outline:2px solid var(--accent);outline-offset:1px}
+  .el .resize{position:absolute;right:-5px;bottom:-5px;width:12px;height:12px;background:var(--accent);border:2px solid #fff;border-radius:3px;cursor:nwse-resize;display:none}
+  .el.selected .resize{display:block}
+  .el .tag{position:absolute;top:-18px;left:0;font-size:10px;color:var(--accent);background:#0f1115cc;padding:1px 5px;border-radius:3px;display:none;white-space:nowrap}
+  .el.selected .tag{display:block}
+  .el.multi{outline:2px dashed var(--accent);outline-offset:1px}
+  .marquee{position:absolute;border:1px solid var(--accent);background:rgba(79,140,255,.15);pointer-events:none;z-index:99999}
+  .el .lock{position:absolute;top:1px;right:1px;font-size:11px;display:block;z-index:4;cursor:pointer;background:#0f1115d9;border-radius:4px;padding:0 3px;line-height:15px}
+  .el .lock:hover{outline:1px solid var(--accent)}
+
+  /* Inspector */
+  #inspector{background:var(--panel);border-left:1px solid var(--line);padding:12px;overflow:auto}
+  #inspector h2{font-size:12px;color:var(--muted);text-transform:uppercase;margin:0 0 10px}
+  .field{margin-bottom:10px}
+  .field label{display:block;font-size:11px;color:var(--muted);margin-bottom:3px}
+  .field input,.field select,.field textarea{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:6px 8px;border-radius:5px;font-size:12px}
+  .row{display:flex;gap:8px}
+  .row .field{flex:1}
+  .empty{color:var(--muted);font-size:12px;text-align:center;margin-top:40px}
+  .hint{font-size:11px;color:var(--muted);margin-top:14px;line-height:1.6}
+  #count{font-size:11px;color:var(--muted)}
+
+  /* Version history modal */
+  .modal-bg{position:fixed;inset:0;background:#000a;display:none;align-items:center;justify-content:center;z-index:50}
+  .modal-bg.open{display:flex}
+  .modal{background:var(--panel);border:1px solid var(--line);border-radius:12px;width:520px;max-height:80vh;display:flex;flex-direction:column;overflow:hidden}
+  .modal header{display:flex;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line)}
+  .modal header h3{margin:0;font-size:14px;flex:1}
+  .modal .body{padding:8px;overflow:auto}
+  .verRow{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;margin-bottom:6px;background:var(--panel2)}
+  .verRow.current{border-color:var(--accent2)}
+  .verRow .vno{font-weight:700;color:var(--accent);min-width:42px}
+  .verRow .meta{flex:1;font-size:12px}
+  .verRow .meta .lbl{font-weight:600}
+  .verRow .meta .sub{color:var(--muted);font-size:11px}
+  .verRow .mini{font-size:10px;color:var(--muted)}
+  .verRow button{font-size:11px;padding:4px 8px}
+  .modal .empty{margin:20px}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="topbar">
+    <h1>🎨 TaskFlow <span style="color:var(--accent)">UI Map</span></h1>
+    <span id="count">0 elements</span>
+    <button class="btn" id="btnUndo" title="ย้อนกลับ (Ctrl+Z)">↶ Undo</button>
+    <button class="btn" id="btnRedo" title="ทำซ้ำ (Ctrl+Y)">↷ Redo</button>
+    <select id="presetSel" class="btn" title="เลือกต้นแบบ UI"></select>
+    <button class="btn" id="btnLoadPreset">📋 โหลด</button>
+    <button class="btn" id="btnSavePreset">💾 บันทึกเป็นต้นแบบ</button>
+    <button class="btn danger" id="btnDelPreset" title="ลบต้นแบบของฉันที่เลือก">🗑</button>
+    <span class="spacer"></span>
+    <button class="btn" id="btnSettings" title="ตั้งค่ากระดาน">⚙ Settings</button>
+    <button class="btn primary" id="btnSaveVersion">📌 บันทึกเวอร์ชัน</button>
+    <button class="btn" id="btnHistory">🕘 ประวัติ</button>
+    <button class="btn" id="btnExport">⬇ Export JSON</button>
+    <button class="btn" id="btnImport">⬆ Import JSON</button>
+    <button class="btn danger" id="btnClear">🗑 Clear</button>
+    <input type="file" id="fileInput" accept="application/json" hidden />
+  </div>
+
+  <div id="palette">
+    <div class="group">หน้า (Pages) <button class="mini" id="btnAddPage" title="เพิ่มหน้าใหม่">＋</button></div>
+    <div id="pageList"></div>
+    <div class="group" style="margin-top:12px">เพิ่ม Element <span style="color:var(--muted)">(ลากลงกระดาน)</span></div>
+    <div id="addPalette"></div>
+    <div class="group" style="margin-top:12px">Element List <span id="elCount"></span></div>
+    <div id="elList"></div>
+  </div>
+
+  <div id="stage">
+    <div id="alignBar"></div>
+    <div id="canvas"></div>
+  </div>
+
+  <div id="inspector">
+    <h2>Properties</h2>
+    <div id="inspectorBody"><div class="empty">เลือก element เพื่อแก้ไข<br/>หรือคลิกปุ่มซ้ายเพื่อสร้าง</div></div>
+  </div>
+</div>
+
+<!-- Settings popover -->
+<div id="settingsPop" class="pop">
+  <h3>⚙ ตั้งค่ากระดาน</h3>
+  <label class="setrow"><input type="checkbox" id="setSnap"/> Snap to grid (ดูดเข้ากริด)</label>
+  <label class="setrow">ขนาดกริด (px) <input type="number" id="setGrid" min="1" max="100" style="width:60px"/></label>
+  <label class="setrow"><input type="checkbox" id="setShowGrid"/> แสดงกริดบนกระดาน</label>
+  <label class="setrow">กว้างกระดาน <input type="number" id="setCanvasW" min="320" max="4000" step="20" style="width:70px"/> px</label>
+  <button class="btn" id="setClose" style="margin-top:8px">ปิด</button>
+</div>
+
+<!-- Version history modal -->
+<div id="histModal" class="modal-bg">
+  <div class="modal">
+    <header>
+      <h3>🕘 ประวัติเวอร์ชัน (Version History)</h3>
+      <button class="btn" id="histClose">✕</button>
+    </header>
+    <div class="body" id="histBody"></div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   Design Board — core data model
+   element schema (สิ่งที่ระบบ "จดจำ"):
+   { id, type, name, x, y, w, h, style:{...}, text, mapsTo }
+   ============================================================ */
+
+// ---- Element type catalog (ต้นแบบของแต่ละชนิด) ----
+const CATALOG = {
+  heading:   {icon:"H", label:"Heading", w:240, h:40,  text:"หัวข้อ",      style:{fontSize:24,fontWeight:700,color:"#111111",bg:"transparent",radius:0,padding:4,border:"none",align:"left"}},
+  text:      {icon:"T", label:"Text",    w:200, h:24,  text:"ข้อความ",     style:{fontSize:14,fontWeight:400,color:"#333333",bg:"transparent",radius:0,padding:2,border:"none",align:"left"}},
+  button:    {icon:"▭", label:"Button",  w:120, h:40,  text:"ปุ่ม",        style:{fontSize:14,fontWeight:600,color:"#ffffff",bg:"#4f8cff",radius:8,padding:8,border:"none",align:"center"}},
+  input:     {icon:"▢", label:"Input",   w:220, h:40,  text:"",           style:{fontSize:14,fontWeight:400,color:"#111111",bg:"#ffffff",radius:6,padding:8,border:"1px solid #cccccc",align:"left",placeholder:"กรอกข้อมูล..."}},
+  image:     {icon:"🖼", label:"Image",   w:160, h:120, text:"IMG",        style:{fontSize:12,fontWeight:400,color:"#888888",bg:"#eeeeee",radius:6,padding:0,border:"1px dashed #cccccc",align:"center"}},
+  card:      {icon:"▦", label:"Card",    w:240, h:160, text:"",           style:{fontSize:14,fontWeight:400,color:"#111111",bg:"#ffffff",radius:12,padding:12,border:"1px solid #e5e7eb",align:"left"}},
+  box:       {icon:"☐", label:"Box",     w:200, h:120, text:"",           style:{fontSize:14,fontWeight:400,color:"#111111",bg:"#f3f4f6",radius:8,padding:8,border:"1px dashed #cbd5e1",align:"left"}},
+};
+
+/* ============================================================
+   PRESETS — ต้นแบบ UI ตัวอย่าง (โหลดมาวางให้ แล้วลากวาง/รีดีไซน์ต่อ)
+   ใช้ element schema เดิม 100% (ไม่แตะ schema/CATALOG)
+   ============================================================ */
+const PRESETS = {
+  login: { label:'🔐 Login Card', build:()=>[
+    mk('card',   {name:'Card',     x:40,  y:40,  w:360, h:360, style:{bg:'#ffffff',radius:16,border:'1px solid #e5e7eb'}}),
+    mk('heading',{name:'Title',    x:72,  y:72,  w:300, h:36,  text:'เข้าสู่ระบบ', style:{fontSize:24,align:'center'}}),
+    mk('text',   {name:'lblEmail', x:72,  y:128, w:300, h:20,  text:'อีเมล', style:{fontSize:13,color:'#6b7280'}}),
+    mk('input',  {name:'email',    x:72,  y:150, w:300, h:40,  style:{placeholder:'you@email.com'}}),
+    mk('text',   {name:'lblPass',  x:72,  y:205, w:300, h:20,  text:'รหัสผ่าน', style:{fontSize:13,color:'#6b7280'}}),
+    mk('input',  {name:'password', x:72,  y:227, w:300, h:40,  style:{placeholder:'••••••••'}}),
+    mk('button', {name:'submit',   x:72,  y:290, w:300, h:44,  text:'เข้าสู่ระบบ'}),
+    mk('text',   {name:'forgot',   x:72,  y:345, w:300, h:20,  text:'ลืมรหัสผ่าน?', style:{fontSize:12,color:'#4f8cff',align:'center'}}),
+  ]},
+  profile: { label:'👤 Profile Card', build:()=>[
+    mk('card',   {name:'Card',     x:40,  y:40,  w:280, h:300, style:{bg:'#ffffff',radius:16,border:'1px solid #e5e7eb'}}),
+    mk('image',  {name:'avatar',   x:140, y:64,  w:80,  h:80,  text:'IMG', style:{radius:40}}),
+    mk('heading',{name:'name',     x:60,  y:158, w:240, h:30,  text:'สมชาย ใจดี', style:{fontSize:20,align:'center'}}),
+    mk('text',   {name:'role',     x:60,  y:190, w:240, h:20,  text:'Frontend Developer', style:{fontSize:13,color:'#6b7280',align:'center'}}),
+    mk('button', {name:'follow',   x:80,  y:244, w:200, h:42,  text:'ติดตาม'}),
+  ]},
+  header: { label:'🧭 Dashboard Header', build:()=>[
+    mk('box',    {name:'bar',      x:40,  y:40,  w:760, h:64,  style:{bg:'#0f172a',radius:12,border:'none'}}),
+    mk('heading',{name:'logo',     x:64,  y:56,  w:200, h:32,  text:'FastCourt', style:{fontSize:22,color:'#ffffff'}}),
+    mk('text',   {name:'navHome',  x:380, y:62,  w:80,  h:20,  text:'หน้าแรก', style:{color:'#cbd5e1',align:'center'}}),
+    mk('text',   {name:'navBook',  x:470, y:62,  w:80,  h:20,  text:'จองคอร์ท', style:{color:'#cbd5e1',align:'center'}}),
+    mk('button', {name:'cta',      x:660, y:54,  w:120, h:36,  text:'+ จองเลย'}),
+  ]},
+};
+
+// สร้าง element จาก preset โดยใช้ default ของ CATALOG เป็นฐาน แล้ว override
+function mk(type, o){
+  const def=CATALOG[type];
+  return {
+    id:'el_'+(++state.seq), type,
+    name:o.name||def.label+' '+state.seq,
+    x:o.x, y:o.y, w:o.w??def.w, h:o.h??def.h,
+    text:o.text??def.text,
+    style:Object.assign(JSON.parse(JSON.stringify(def.style)), o.style||{}),
+    mapsTo:null
+  };
+}
+
+/* ============================================================
+   TASKFLOW_DESIGN — design หลักของแอปนี้ (map จาก index.html จริง)
+   วัด geometry จากหน้า render @680px; ทุกชิ้นมี mapsTo ชี้กลับ DOM จริง
+   เปิดมาจะโหลดอันนี้ และถูกบันทึกเป็น V1 ในประวัติเวอร์ชัน
+   ============================================================ */
+const TASKFLOW_DESIGN = [
+  {id:'el_1',  type:'box',     name:'Header bar',      x:40,  y:40,  w:680, h:78,  text:'',                          style:{fontSize:14,fontWeight:400,color:'#ffffff',bg:'#4f8cff',radius:18,padding:0, border:'none',              align:'left'},   mapsTo:'.app-header'},
+  {id:'el_2',  type:'heading', name:'Logo title',      x:110, y:64,  w:96,  h:30,  text:'TaskFlow',                  style:{fontSize:22,fontWeight:700,color:'#ffffff',bg:'transparent',radius:0,padding:0,border:'none',         align:'left'},   mapsTo:'.app-header h1'},
+  {id:'el_3',  type:'text',    name:'stat: total',     x:570, y:60,  w:44,  h:38,  text:'3 ทั้งหมด',                 style:{fontSize:13,fontWeight:400,color:'#ffffff',bg:'transparent',radius:0,padding:0,border:'none',         align:'center'}, mapsTo:'#statTotal'},
+  {id:'el_4',  type:'text',    name:'stat: done',      x:622, y:60,  w:36,  h:38,  text:'1 เสร็จ',                   style:{fontSize:13,fontWeight:400,color:'#ffffff',bg:'transparent',radius:0,padding:0,border:'none',         align:'center'}, mapsTo:'#statDone'},
+  {id:'el_5',  type:'text',    name:'stat: left',      x:664, y:60,  w:36,  h:38,  text:'2 เหลือ',                   style:{fontSize:13,fontWeight:400,color:'#ffffff',bg:'transparent',radius:0,padding:0,border:'none',         align:'center'}, mapsTo:'#statLeft'},
+  {id:'el_6',  type:'box',     name:'Add bar',         x:40,  y:136, w:680, h:69,  text:'',                          style:{fontSize:14,fontWeight:400,color:'#111111',bg:'#ffffff',radius:14,padding:0, border:'1px solid #e6e9f0', align:'left'},   mapsTo:'.add-bar'},
+  {id:'el_7',  type:'input',   name:'Task input',      x:54,  y:150, w:461, h:41,  text:'',                          style:{fontSize:15,fontWeight:400,color:'#1f2430',bg:'#ffffff',radius:10,padding:11,border:'1px solid #e6e9f0',align:'left',placeholder:'เพิ่มงานใหม่... แล้วกด Enter'}, mapsTo:'#taskInput'},
+  {id:'el_8',  type:'input',   name:'Priority select', x:525, y:150, w:73,  h:41,  text:'',                          style:{fontSize:14,fontWeight:400,color:'#1f2430',bg:'#ffffff',radius:10,padding:8, border:'1px solid #e6e9f0',align:'left',placeholder:'กลาง ▾'}, mapsTo:'#prioritySelect'},
+  {id:'el_9',  type:'button',  name:'Add button',      x:608, y:150, w:98,  h:41,  text:'+ เพิ่มงาน',               style:{fontSize:14,fontWeight:600,color:'#ffffff',bg:'#4f8cff',radius:10,padding:8, border:'none',              align:'center'}, mapsTo:'#addBtn'},
+  {id:'el_10', type:'button',  name:'filter: all',     x:40,  y:219, w:74,  h:32,  text:'ทั้งหมด',                   style:{fontSize:13,fontWeight:600,color:'#ffffff',bg:'#4f8cff',radius:16,padding:4, border:'none',              align:'center'}, mapsTo:'.chip[data-filter="all"]'},
+  {id:'el_11', type:'button',  name:'filter: active',  x:122, y:219, w:87,  h:32,  text:'ยังไม่เสร็จ',               style:{fontSize:13,fontWeight:500,color:'#7b8294',bg:'#ffffff',radius:16,padding:4, border:'1px solid #e6e9f0', align:'center'}, mapsTo:'.chip[data-filter="active"]'},
+  {id:'el_12', type:'button',  name:'filter: done',    x:218, y:219, w:81,  h:32,  text:'เสร็จแล้ว',                 style:{fontSize:13,fontWeight:500,color:'#7b8294',bg:'#ffffff',radius:16,padding:4, border:'1px solid #e6e9f0', align:'center'}, mapsTo:'.chip[data-filter="done"]'},
+  {id:'el_13', type:'button',  name:'Clear done',      x:644, y:227, w:76,  h:18,  text:'ล้างงานที่เสร็จ',           style:{fontSize:13,fontWeight:400,color:'#7b8294',bg:'transparent',radius:0,padding:0,border:'none',          align:'right'},  mapsTo:'#clearDone'},
+  {id:'el_14', type:'box',     name:'Task list',       x:40,  y:265, w:680, h:230, text:'',                          style:{fontSize:14,fontWeight:400,color:'#111111',bg:'transparent',radius:0,padding:0,border:'none',         align:'left'},   mapsTo:'#taskList'},
+  {id:'el_15', type:'card',    name:'Task row (sample)',x:40, y:265, w:680, h:70,  text:'',                          style:{fontSize:14,fontWeight:400,color:'#1f2430',bg:'#ffffff',radius:12,padding:0, border:'1px solid #e6e9f0', align:'left'},   mapsTo:'.task'},
+  {id:'el_16', type:'text',    name:'Task title',      x:94,  y:279, w:500, h:20,  text:'ออกแบบหน้า Dashboard',       style:{fontSize:15,fontWeight:500,color:'#1f2430',bg:'transparent',radius:0,padding:0,border:'none',         align:'left'},   mapsTo:'.task .task-title'},
+  {id:'el_17', type:'text',    name:'Badge',           x:94,  y:302, w:31,  h:19,  text:'สูง',                       style:{fontSize:11,fontWeight:600,color:'#b91c1c',bg:'#fee2e2',radius:12,padding:2, border:'none',              align:'center'}, mapsTo:'.task .badge'},
+  {id:'el_18', type:'text',    name:'Empty state',     x:240, y:520, w:320, h:60,  text:'🗒️ ยังไม่มีงาน — เพิ่มงานแรกของคุณ!', style:{fontSize:14,fontWeight:400,color:'#7b8294',bg:'transparent',radius:0,padding:0,border:'none',  align:'center'}, mapsTo:'#emptyState'},
+];
+// element จาก mapping → ค่าเริ่มต้น: ไม่ล็อก ไม่ซ่อน (เลือก/ลากได้ตามมาตรฐาน Figma)
+TASKFLOW_DESIGN.forEach(e=>{ if(e.locked===undefined) e.locked=false; if(e.hidden===undefined) e.hidden=false; });
+
+const state = { els:[], selected:null, multi:[], seq:0 };
+
+// ---- Settings (เก็บลง localStorage, ใช้จริงในการลาก/กริด) ----
+const settings = Object.assign({ snap:true, grid:5, showGrid:true, canvasW:1280 }, (()=>{ try{return JSON.parse(localStorage.getItem('tfSettings'))||{}}catch(e){return{}} })());
+function saveSettings(){ localStorage.setItem('tfSettings', JSON.stringify(settings)); }
+function snapV(v){ return settings.snap ? Math.round(v/settings.grid)*settings.grid : Math.round(v); }
+
+// ---- Multi-page (เมนูเลือกหน้าของ app) ----
+// pages = { active, list:[{id,name,route}], data:{ id:{els,seq} } }
+let pages=null;
+function getPages(){ try{return JSON.parse(localStorage.getItem('tfPages'))}catch(e){return null} }
+function setPages(p){ localStorage.setItem('tfPages', JSON.stringify(p)); }
+function pagesPersistCurrent(){ if(pages&&pages.active){ pages.data[pages.active]={els:state.els, seq:state.seq}; setPages(pages); } }
+const canvas = document.getElementById('canvas');
+const inspectorBody = document.getElementById('inspectorBody');
+const countEl = document.getElementById('count');
+
+// ---- หาความเป็นพ่อ-ลูกจากเรขาคณิต (container ที่ครอบ element อยู่ = พ่อ) ----
+const CONTAINER_TYPES = new Set(['box','card']);
+function buildTree(){
+  const eps=2;
+  const contains=(p,e)=> p.x-eps<=e.x && e.x+e.w<=p.x+p.w+eps && p.y-eps<=e.y && e.y+e.h<=p.y+p.h+eps;
+  const area=el=>el.w*el.h;
+  const parentOf={};
+  state.els.forEach(e=>{
+    let best=null;
+    state.els.forEach(p=>{
+      if(p===e || !CONTAINER_TYPES.has(p.type)) return;
+      if(contains(p,e) && !contains(e,p)){          // p ครอบ e (และไม่ทับซ้อนเท่ากันพอดี)
+        if(!best || area(p)<area(best)) best=p;       // เลือก container ที่เล็กที่สุด (ชิดที่สุด)
+      }
+    });
+    parentOf[e.id]=best?best.id:null;
+  });
+  const childrenOf={__root:[]};
+  state.els.forEach(e=>{ const pid=parentOf[e.id]||'__root'; (childrenOf[pid]=childrenOf[pid]||[]).push(e); });
+  return {childrenOf, parentOf};
+}
+// ---- ตัวช่วยลำดับชั้น (Figma-style) ----
+function outermostOf(id){ const {parentOf}=buildTree(); let c=id,p; while((p=parentOf[c])) c=p; return c; }
+function descendantsOf(id){ const {childrenOf}=buildTree(); const out=[]; const w=n=>{ (childrenOf[n]||[]).forEach(ch=>{ out.push(ch.id); w(ch.id); }); }; w(id); return out; }
+function pathFromRoot(id){ const {parentOf}=buildTree(); const path=[]; let c=id; while(c){ path.unshift(c); c=parentOf[c]; } return path; }
+// ดับเบิลคลิก = เจาะลึกลง 1 ชั้นจากที่เลือกอยู่ (ไปทาง element ในสุดที่กด)
+function drillTarget(innerId){
+  const path=pathFromRoot(innerId);
+  const sel=state.selected;
+  if(sel && path.includes(sel)){ const i=path.indexOf(sel); return i<path.length-1 ? path[i+1] : sel; }
+  return path.length>1 ? path[1] : path[0];
+}
+function withDescendants(ids){ const set=new Set(); ids.forEach(id=>{ set.add(id); descendantsOf(id).forEach(d=>set.add(d)); }); return [...set]; }
+
+// ---- Element List แบบ tree (มี sub-element ซ้อนใต้ container) ----
+function renderElementList(){
+  const wrap=document.getElementById('elList'); if(!wrap) return;
+  const c=document.getElementById('elCount'); if(c) c.textContent='('+state.els.length+')';
+  if(!state.els.length){ wrap.innerHTML='<div class="empty">ไม่มี element</div>'; return; }
+  const {childrenOf}=buildTree();
+  const isSel=id=>(state.selected===id||state.multi.includes(id))?'sel':'';
+  let html='';
+  const walk=(node,depth)=>{
+    const kids=childrenOf[node.id]||[];
+    html+=`<div class="el-item ${isSel(node.id)} ${depth?'child':''} ${node.hidden?'is-hidden':''}" data-id="${node.id}" title="${node.mapsTo||''}" ${depth?`style="margin-left:${depth*14}px"`:''}>
+      <span class="ic">${kids.length?'▾':'&nbsp;'}</span>
+      <span class="ic">${(CATALOG[node.type]||{}).icon||'▫'}</span>
+      <div class="body">
+        <div class="nm">${node.name}${kids.length?` <span class="cnt">(${kids.length})</span>`:''}</div>
+        ${node.mapsTo?`<div class="mp">→ ${node.mapsTo}</div>`:''}
+      </div>
+      <span class="lay-act eye ${node.hidden?'on':''}" data-eye="${node.id}" title="${node.hidden?'ซ่อนอยู่ — คลิกเพื่อแสดง':'คลิกเพื่อซ่อน'}">${node.hidden?'🙈':'👁'}</span>
+      <span class="lay-act lk ${node.locked?'on':''}" data-lock="${node.id}" title="${node.locked?'ล็อกอยู่ — คลิกเพื่อปลด':'คลิกเพื่อล็อก'}">${node.locked?'🔒':'🔓'}</span>
+      <span class="ty">${node.type}</span>
+    </div>`;
+    kids.forEach(k=>walk(k,depth+1));
+  };
+  (childrenOf['__root']||[]).forEach(n=>walk(n,0));
+  wrap.innerHTML=html;
+  wrap.querySelectorAll('.el-item').forEach(it=>{ it.onclick=()=>select(it.dataset.id); });
+  wrap.querySelectorAll('.lay-act[data-lock]').forEach(b=>{ b.onclick=ev=>{ ev.stopPropagation(); const el=state.els.find(e=>e.id===b.dataset.lock); if(el){ el.locked=!el.locked; renderEl(el); save(); } }; });
+  wrap.querySelectorAll('.lay-act[data-eye]').forEach(b=>{ b.onclick=ev=>{ ev.stopPropagation(); const el=state.els.find(e=>e.id===b.dataset.eye); if(el){ el.hidden=!el.hidden; if(el.hidden&&state.selected===el.id){ state.selected=null; state.multi=[]; inspectorBody.innerHTML='<div class="empty">เลือก element เพื่อแก้ไข</div>'; } renderEl(el); save(); } }; });
+  // ดับเบิลคลิกชื่อ = เปลี่ยนชื่อ layer
+  wrap.querySelectorAll('.el-item .nm').forEach(nm=>{ nm.ondblclick=ev=>{ ev.stopPropagation(); const id=nm.closest('.el-item').dataset.id; const el=state.els.find(e=>e.id===id); if(!el)return;
+    nm.textContent=el.name; nm.contentEditable='true'; nm.focus(); document.execCommand&&document.execCommand('selectAll',false,null);
+    const fin=()=>{ el.name=(nm.textContent||'').trim()||el.name; nm.contentEditable='false'; nm.removeEventListener('blur',fin); save(); };
+    nm.addEventListener('blur',fin);
+    nm.addEventListener('keydown',k=>{ k.stopPropagation(); if(k.key==='Enter'){k.preventDefault();nm.blur();} if(k.key==='Escape'){nm.textContent=el.name;nm.blur();} });
+  }; });
+  updateAlignBar();
+}
+
+// ---- Create element ----
+function addElement(type, opts={}){
+  const def=CATALOG[type];
+  const el={
+    id:'el_'+(++state.seq),
+    type,
+    name:def.label+' '+state.seq,
+    x:opts.x ?? 40, y:opts.y ?? 40,
+    w:def.w, h:def.h,
+    text:def.text,
+    style:JSON.parse(JSON.stringify(def.style)),
+    mapsTo:null   // เผื่อ map UI เก่า -> ใหม่ ภายหลัง
+  };
+  state.els.push(el);
+  renderEl(el);
+  select(el.id);
+  save();
+}
+
+// ---- Render one element ----
+function renderEl(el){
+  let node=document.getElementById(el.id);
+  if(!node){
+    node=document.createElement('div');
+    node.id=el.id; node.className='el';
+    node.innerHTML=`<span class="tag"></span><span class="lock">🔒</span><span class="content"></span><span class="resize"></span>`;
+    canvas.appendChild(node);
+    attachDrag(node,el);
+  }
+  const lockEl=node.querySelector('.lock');
+  lockEl.textContent='🔒'; lockEl.style.display = el.locked ? 'block' : 'none';   // โชว์ป้ายล็อกเฉพาะตอนล็อก
+  node.classList.toggle('locked', !!el.locked);
+  const s=el.style;
+  Object.assign(node.style,{
+    left:el.x+'px', top:el.y+'px', width:el.w+'px', height:el.h+'px',
+    fontSize:s.fontSize+'px', fontWeight:s.fontWeight, color:s.color,
+    background:s.bg, borderRadius:s.radius+'px', padding:s.padding+'px',
+    border:s.border==='none'?'none':s.border, textAlign:s.align,
+    display: el.hidden ? 'none' : 'flex', alignItems:'center',
+    justifyContent: s.align==='center'?'center':(s.align==='right'?'flex-end':'flex-start'),
+    overflow:'hidden'
+  });
+  node.querySelector('.tag').textContent=`${el.type} · ${el.w}×${el.h}`;
+  const content=node.querySelector('.content');
+  if(el.type==='input'){ content.textContent=s.placeholder||''; content.style.opacity=.6; }
+  else { content.textContent=el.text; content.style.opacity=1; }
+}
+
+// จัดชั้น z-index: กล่องใหญ่อยู่ล่าง ชิ้นเล็กอยู่บน → คลิกโดน "ชิ้นในสุด" เสมอ
+function restack(){
+  [...state.els].sort((a,b)=>(b.w*b.h)-(a.w*a.h)).forEach((el,i)=>{
+    const n=document.getElementById(el.id); if(n) n.style.zIndex=i+1;
+  });
+}
+
+// toggle element ใน/ออกจาก multi-select (Shift+คลิก)
+function toggleInMulti(id){
+  const cur = state.multi.length ? state.multi.slice() : (state.selected?[state.selected]:[]);
+  const i = cur.indexOf(id);
+  if(i>=0) cur.splice(i,1); else cur.push(id);
+  setMulti(cur);
+}
+
+// ---- Drag + resize + เลือกแบบ Figma ----
+// คลิก = เลือกก้อนนอกสุด · Cmd/Ctrl+คลิก = ชิ้นในสุด · Shift+คลิก = multi · ดับเบิลคลิก = เจาะลึก
+function attachDrag(node,el){
+  let sx,sy,ow,oh,group;
+  // ดับเบิลคลิก = ถ้าเป็น leaf text → แก้ข้อความ inline · ไม่งั้น = เจาะลึกลง 1 ชั้น
+  node.addEventListener('dblclick',e=>{ e.preventDefault(); e.stopPropagation(); if(el.locked) return;
+    const hasKids=(buildTree().childrenOf[el.id]||[]).length>0;
+    if(!hasKids && ['text','heading','button'].includes(el.type)) startInlineEdit(node, el);
+    else select(drillTarget(el.id));
+  });
+  node.addEventListener('mousedown',e=>{
+    if(e.target.isContentEditable) return;             // กำลังแก้ข้อความ → ไม่ลาก
+    // คลิกป้าย 🔒 (โชว์เฉพาะตอนล็อก) = ปลดล็อก
+    if(e.target.classList.contains('lock')){ el.locked=false; renderEl(el); save(); select(el.id); e.preventDefault(); e.stopPropagation(); return; }
+    if(el.locked || el.hidden) return;                 // ล็อก/ซ่อน → เลือกบน canvas ไม่ได้ (ใช้ panel)
+    const isResize = e.target.classList.contains('resize');
+
+    if(isResize){                                       // ปรับขนาดเฉพาะ el ที่เลือก
+      select(el.id); group=[{el, ox:el.x, oy:el.y}];
+      sx=e.clientX; sy=e.clientY; ow=el.w; oh=el.h; e.preventDefault();
+      const mv=ev=>{ const dx=ev.clientX-sx, dy=ev.clientY-sy; el.w=Math.max(24,snapV(ow+dx)); el.h=Math.max(20,snapV(oh+dy)); renderEl(el); if(state.selected===el.id) renderInspector(el); };
+      const up=()=>{document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);save();};
+      document.addEventListener('mousemove',mv); document.addEventListener('mouseup',up); return;
+    }
+
+    // หา target ตาม modifier (el คือชิ้นในสุดใต้เมาส์ เพราะ z-order)
+    const targetId = (e.metaKey||e.ctrlKey) ? el.id : outermostOf(el.id);
+    if(e.shiftKey){ toggleInMulti(targetId); e.preventDefault(); return; }
+
+    // เลือกชุดที่จะย้าย
+    let baseIds;
+    if(state.multi.length>1 && (state.multi.includes(targetId)||state.multi.includes(el.id))){
+      baseIds = state.multi.slice();                   // กดในกลุ่มที่เลือกไว้ → ลากทั้งกลุ่ม
+    } else {
+      select(targetId); baseIds=[targetId];            // เลือกใหม่
+    }
+    // ย้าย: ก้อน + ลูกหลานทั้งหมด (ยกเว้นชิ้นที่ล็อก)
+    const movers = withDescendants(baseIds).map(id=>state.els.find(z=>z.id===id)).filter(z=>z && !z.locked);
+    group = movers.map(m=>({el:m, ox:m.x, oy:m.y}));
+    sx=e.clientX; sy=e.clientY; e.preventDefault();
+    const mv=ev=>{
+      const dx=ev.clientX-sx, dy=ev.clientY-sy;
+      group.forEach(g=>{ g.el.x=Math.max(0,snapV(g.ox+dx)); g.el.y=Math.max(0,snapV(g.oy+dy)); renderEl(g.el); });
+      if(state.selected && group.some(g=>g.el.id===state.selected)) renderInspector(state.els.find(z=>z.id===state.selected));
+    };
+    const up=()=>{document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);save();};
+    document.addEventListener('mousemove',mv); document.addEventListener('mouseup',up);
+  });
+}
+
+// ---- Selection ----
+function select(id){
+  state.selected=id;
+  document.querySelectorAll('.el').forEach(n=>n.classList.toggle('selected',n.id===id));
+  const el=state.els.find(e=>e.id===id);
+  if(el) renderInspector(el);
+}
+// เลือกหลายชิ้น (multi-select) — ตั้งค่าและไฮไลต์
+function setMulti(ids){
+  state.multi=ids; state.selected = ids.length===1?ids[0]:null;
+  document.querySelectorAll('.el').forEach(n=>{ n.classList.toggle('multi', ids.includes(n.id)); n.classList.toggle('selected', n.id===state.selected); });
+  if(ids.length===1){ const el=state.els.find(e=>e.id===ids[0]); if(el) renderInspector(el); }
+  else if(ids.length>1){ inspectorBody.innerHTML='<div class="empty"><b>เลือก '+ids.length+' element</b><br/>ลากเพื่อย้ายทั้งกลุ่ม · กด Delete เพื่อลบทั้งกลุ่ม</div>'; }
+  else { inspectorBody.innerHTML='<div class="empty">เลือก element เพื่อแก้ไข</div>'; }
+  renderElementList();
+}
+
+// ย้ายชุด element ด้วยกัน (ใช้ทั้งลากกลุ่มจากพื้นที่ว่าง และที่อื่น)
+function beginMove(e, movers){
+  const sx=e.clientX, sy=e.clientY;
+  const orig=movers.map(m=>({el:m, ox:m.x, oy:m.y}));
+  e.preventDefault();
+  const mv=ev=>{
+    const dx=ev.clientX-sx, dy=ev.clientY-sy;
+    orig.forEach(g=>{ g.el.x=Math.max(0,snapV(g.ox+dx)); g.el.y=Math.max(0,snapV(g.oy+dy)); renderEl(g.el); });
+  };
+  const up=()=>{document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);save();};
+  document.addEventListener('mousemove',mv); document.addEventListener('mouseup',up);
+}
+
+// ลากครอบ (Crop/marquee) บนพื้นที่ว่าง → เลือกทุก element ที่อยู่ในกรอบ
+canvas.addEventListener('mousedown',e=>{
+  if(e.target!==canvas) return;
+  const cr=canvas.getBoundingClientRect();
+  const startX=e.clientX-cr.left, startY=e.clientY-cr.top;
+  const shiftAdd=e.shiftKey;
+  const keep = shiftAdd ? (state.multi.length?state.multi.slice():(state.selected?[state.selected]:[])) : [];
+  // มีกลุ่มเลือกอยู่ + กดในกรอบรวมของกลุ่ม (ไม่กด Shift) → ลากย้ายทั้งกลุ่ม
+  if(!shiftAdd && state.multi.length>1){
+    const xs=state.multi.map(id=>state.els.find(z=>z.id===id)).filter(Boolean);
+    const minX=Math.min(...xs.map(z=>z.x)), minY=Math.min(...xs.map(z=>z.y));
+    const maxX=Math.max(...xs.map(z=>z.x+z.w)), maxY=Math.max(...xs.map(z=>z.y+z.h));
+    if(startX>=minX && startX<=maxX && startY>=minY && startY<=maxY){ beginMove(e, withDescendants(state.multi).map(id=>state.els.find(z=>z.id===id)).filter(z=>z&&!z.locked)); return; }
+  }
+  if(!shiftAdd){ state.selected=null; state.multi=[]; document.querySelectorAll('.el').forEach(n=>n.classList.remove('selected','multi')); }
+  const box=document.createElement('div'); box.className='marquee'; canvas.appendChild(box);
+  const mv=ev=>{
+    const cx=ev.clientX-cr.left, cy=ev.clientY-cr.top;
+    const x=Math.min(startX,cx), y=Math.min(startY,cy), w=Math.abs(cx-startX), h=Math.abs(cy-startY);
+    Object.assign(box.style,{left:x+'px',top:y+'px',width:w+'px',height:h+'px'});
+  };
+  const up=ev=>{
+    document.removeEventListener('mousemove',mv); document.removeEventListener('mouseup',up);
+    const cx=ev.clientX-cr.left, cy=ev.clientY-cr.top;
+    const mx=Math.min(startX,cx), my=Math.min(startY,cy), mw=Math.abs(cx-startX), mh=Math.abs(cy-startY);
+    box.remove();
+    if(mw>4 && mh>4){
+      const inBox=state.els.filter(el=> !el.locked && !el.hidden && el.x<mx+mw && el.x+el.w>mx && el.y<my+mh && el.y+el.h>my).map(el=>el.id);
+      // Shift = เพิ่มเข้าชุดเดิม
+      const sel = shiftAdd ? [...new Set([...keep, ...inBox])] : inBox;
+      if(sel.length){ setMulti(sel); return; }
+    }
+    inspectorBody.innerHTML='<div class="empty">เลือก element เพื่อแก้ไข</div>'; renderElementList();
+  };
+  document.addEventListener('mousemove',mv); document.addEventListener('mouseup',up);
+});
+
+// ---- Inspector (แก้ไขรายละเอียด design) ----
+function renderInspector(el){
+  const s=el.style;
+  const f=(label,key,type='text',val,opts)=>{
+    if(type==='select'){
+      return `<div class="field"><label>${label}</label><select data-k="${key}">${opts.map(o=>`<option ${val===o?'selected':''}>${o}</option>`).join('')}</select></div>`;
+    }
+    return `<div class="field"><label>${label}</label><input data-k="${key}" type="${type}" value="${val??''}"/></div>`;
+  };
+  const statusbar = `<div class="lockbar ${el.locked?'is-locked':''}">
+    ${el.locked?'🔒 ล็อก (เลือกบน canvas ไม่ได้)':(el.hidden?'🙈 ซ่อนอยู่':'แก้ไขได้')}
+    <button class="btn" id="lockBtn" title="ล็อก = กันเลือก/ขยับบน canvas">${el.locked?'🔓 ปลดล็อก':'🔒 ล็อก'}</button>
+    <button class="btn" id="hideBtn">${el.hidden?'👁 แสดง':'🙈 ซ่อน'}</button>
+  </div>`;
+  inspectorBody.innerHTML=`
+    ${statusbar}
+    ${f('Name','name','text',el.name)}
+    <div class="field"><label>Type</label><input value="${el.type}" disabled style="opacity:.6"/></div>
+    <div class="row">${f('X','x','number',el.x)}${f('Y','y','number',el.y)}</div>
+    <div class="row">${f('W','w','number',el.w)}${f('H','h','number',el.h)}</div>
+    ${el.type==='input'? f('Placeholder','s.placeholder','text',s.placeholder) : f('Text','text','text',el.text)}
+    <div class="row">${f('Font size','s.fontSize','number',s.fontSize)}${f('Weight','s.fontWeight','number',s.fontWeight)}</div>
+    ${f('Align','s.align','select',s.align,['left','center','right'])}
+    <div class="row">
+      <div class="field"><label>Color</label><input data-k="s.color" type="color" value="${s.color}"/></div>
+      <div class="field"><label>BG</label><input data-k="s.bg" type="color" value="${s.bg==='transparent'?'#ffffff':s.bg}"/></div>
+    </div>
+    <div class="row">${f('Radius','s.radius','number',s.radius)}${f('Padding','s.padding','number',s.padding)}</div>
+    ${f('Border (css)','s.border','text',s.border)}
+    ${f('Maps to (UI เก่า)','mapsTo','text',el.mapsTo||'')}
+    <div class="row" style="margin-top:8px">
+      <button class="btn" id="dupBtn" style="flex:1">⧉ Duplicate</button>
+      <button class="btn danger" id="delBtn" style="flex:1">🗑 Delete</button>
+    </div>
+    <div class="hint">คลิก=ทั้งก้อน · ดับเบิลคลิก=เจาะเข้า · Ctrl+คลิก=ชิ้นในสุด · Shift+คลิก=เลือกหลายชิ้น · Esc=ถอยขึ้น</div>
+  `;
+  inspectorBody.querySelectorAll('[data-k]').forEach(inp=>{
+    inp.addEventListener('input',()=>{
+      let v=inp.value; if(inp.type==='number') v=Number(v);
+      const k=inp.dataset.k;
+      if(k.startsWith('s.')) el.style[k.slice(2)]=v;
+      else el[k]=v;
+      renderEl(el); save();
+    });
+  });
+  inspectorBody.querySelector('#lockBtn').onclick=()=>{ el.locked=!el.locked; renderEl(el); save(); renderInspector(el); };
+  inspectorBody.querySelector('#hideBtn').onclick=()=>{ el.hidden=!el.hidden; renderEl(el); save(); renderInspector(el); };
+  inspectorBody.querySelector('#delBtn').onclick=()=>delElement(el.id);
+  inspectorBody.querySelector('#dupBtn').onclick=()=>{ const c=JSON.parse(JSON.stringify(el)); c.id='el_'+(++state.seq); c.x+=20;c.y+=20;c.name=el.name+' copy'; c.mapsTo=null; c.locked=false; c.hidden=false; state.els.push(c); renderEl(c); select(c.id); save(); };
+}
+
+function delElement(id){
+  state.els=state.els.filter(e=>e.id!==id);
+  document.getElementById(id)?.remove();
+  state.selected=null;
+  inspectorBody.innerHTML='<div class="empty">เลือก element เพื่อแก้ไข</div>';
+  save();
+}
+
+// ---- Persistence ----
+function save(){
+  countEl.textContent=state.els.length+' elements';
+  localStorage.setItem('tfBoard', JSON.stringify({els:state.els,seq:state.seq}));
+}
+function load(){
+  try{
+    const d=JSON.parse(localStorage.getItem('tfBoard'));
+    if(d&&d.els){ state.els=d.els; state.seq=d.seq||0; state.els.forEach(renderEl); save(); }
+  }catch(e){}
+}
+
+// ---- Toolbar ----
+document.getElementById('btnExport').onclick=()=>{
+  const blob=new Blob([JSON.stringify({version:1,els:state.els},null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='design.json'; a.click();
+};
+document.getElementById('btnImport').onclick=()=>document.getElementById('fileInput').click();
+document.getElementById('fileInput').onchange=e=>{
+  const file=e.target.files[0]; if(!file)return;
+  const r=new FileReader();
+  r.onload=()=>{ try{ const d=JSON.parse(r.result); canvas.innerHTML=''; state.els=d.els||[]; state.seq=Math.max(0,...state.els.map(x=>+x.id.split('_')[1]||0)); state.els.forEach(renderEl); save(); }catch(err){alert('ไฟล์ไม่ถูกต้อง');} };
+  r.readAsText(file);
+};
+document.getElementById('btnClear').onclick=()=>{ if(confirm('ลบทั้งหมด?')){ state.els=[];state.seq=0;canvas.innerHTML='';state.selected=null;inspectorBody.innerHTML='<div class="empty">เลือก element เพื่อแก้ไข</div>';save(); } };
+
+// keyboard: delete + Esc (ถอยขึ้น 1 ชั้น)
+document.addEventListener('keydown',e=>{
+  if(document.activeElement.tagName==='INPUT') return;
+  if(e.key==='Delete'||e.key==='Backspace'){
+    const ids = state.multi.length>1 ? state.multi.slice() : (state.selected?[state.selected]:[]);
+    ids.forEach(id=>{ const el=state.els.find(z=>z.id===id); if(el && !el.locked) delElement(id); });
+    state.multi=[];
+  } else if(e.key==='Escape'){
+    if(state.selected){ const {parentOf}=buildTree(); const p=parentOf[state.selected]; if(p) select(p); else { state.selected=null;state.multi=[]; document.querySelectorAll('.el').forEach(n=>n.classList.remove('selected','multi')); inspectorBody.innerHTML='<div class="empty">เลือก element เพื่อแก้ไข</div>'; renderElementList(); } }
+    else if(state.multi.length){ state.multi=[]; document.querySelectorAll('.el').forEach(n=>n.classList.remove('selected','multi')); renderElementList(); }
+  }
+});
+
+// ---- Preset loader (ต้นแบบ) ----
+function loadPreset(key,{confirmReplace=true}={}){
+  const p=PRESETS[key]; if(!p)return;
+  if(confirmReplace && state.els.length && !confirm('โหลดต้นแบบจะแทนที่งานปัจจุบันทั้งหมด ดำเนินการต่อ?')) return;
+  canvas.innerHTML=''; state.els=[]; state.selected=null; state.seq=0;
+  inspectorBody.innerHTML='<div class="empty">เลือก element เพื่อแก้ไข</div>';
+  p.build().forEach(el=>{ state.els.push(el); renderEl(el); });
+  save();
+}
+// โหลดต้นแบบ "ของฉัน" (เก็บเป็น array ของ element ที่ผู้ใช้ออกแบบเอง)
+function loadTemplate(els,{confirmReplace=true}={}){
+  if(confirmReplace && state.els.length && !confirm('โหลดต้นแบบจะแทนที่งานปัจจุบันทั้งหมด ดำเนินการต่อ?')) return;
+  canvas.innerHTML=''; state.els=JSON.parse(JSON.stringify(els)); state.selected=null;
+  state.seq=Math.max(0,...state.els.map(x=>+(String(x.id).split('_')[1])||0));
+  inspectorBody.innerHTML='<div class="empty">เลือก element เพื่อแก้ไข</div>';
+  state.els.forEach(renderEl); save();
+}
+
+// ---- User templates (ผู้ใช้เขียนต้นแบบเอง → เก็บลง localStorage) ----
+function getUserTemplates(){ try{return JSON.parse(localStorage.getItem('tfTemplates'))||{}}catch(e){return{}} }
+function setUserTemplates(t){ localStorage.setItem('tfTemplates', JSON.stringify(t)); }
+
+const presetSel=document.getElementById('presetSel');
+function refreshPresetDropdown(){
+  presetSel.innerHTML='';
+  const g1=document.createElement('optgroup'); g1.label='ต้นแบบในระบบ';
+  Object.entries(PRESETS).forEach(([k,p])=>{ g1.appendChild(new Option(p.label,'builtin:'+k)); });
+  presetSel.appendChild(g1);
+  const ut=getUserTemplates(); const keys=Object.keys(ut);
+  if(keys.length){
+    const g2=document.createElement('optgroup'); g2.label='ต้นแบบของฉัน';
+    keys.forEach(k=>g2.appendChild(new Option('★ '+ut[k].label,'user:'+k)));
+    presetSel.appendChild(g2);
+  }
+}
+refreshPresetDropdown();
+
+document.getElementById('btnLoadPreset').onclick=()=>{
+  const [kind,key]=presetSel.value.split(':');
+  if(kind==='builtin') loadPreset(key);
+  else { const ut=getUserTemplates(); if(ut[key]) loadTemplate(ut[key].els); }
+};
+document.getElementById('btnSavePreset').onclick=()=>{
+  if(!state.els.length){ alert('ยังไม่มี element บนกระดาน'); return; }
+  const label=prompt('ตั้งชื่อต้นแบบของคุณ:'); if(!label) return;
+  const ut=getUserTemplates(); const key='t_'+Date.now();
+  ut[key]={label, els:JSON.parse(JSON.stringify(state.els))};
+  setUserTemplates(ut); refreshPresetDropdown(); presetSel.value='user:'+key;
+  alert('บันทึกต้นแบบ "'+label+'" แล้ว — เรียกกลับมาใช้ได้จาก dropdown');
+};
+document.getElementById('btnDelPreset').onclick=()=>{
+  const [kind,key]=presetSel.value.split(':');
+  if(kind!=='user'){ alert('ลบได้เฉพาะ "ต้นแบบของฉัน"'); return; }
+  const ut=getUserTemplates(); if(!ut[key])return;
+  if(!confirm('ลบต้นแบบ "'+ut[key].label+'"?'))return;
+  delete ut[key]; setUserTemplates(ut); refreshPresetDropdown();
+};
+
+/* ============================================================
+   Version History — ประวัติการแก้ไขแต่ละเวอร์ชัน (สำหรับหน้าจัดการ)
+   localStorage key = designVersions : [{v,label,ts,els}]
+   ============================================================ */
+function getVersions(){ try{return JSON.parse(localStorage.getItem('tfVersions'))||[]}catch(e){return[]} }
+function setVersions(v){ localStorage.setItem('tfVersions', JSON.stringify(v)); }
+// version แยกต่อหน้า (page) — ใช้ active page เป็นตัวกรอง
+function curPageId(){ return (typeof pages!=='undefined' && pages) ? pages.active : '_'; }
+function curPageName(){ if(typeof pages!=='undefined' && pages){ const p=pages.list.find(x=>x.id===pages.active); return p?p.name:''; } return ''; }
+function pageVersions(){ const pid=curPageId(); return getVersions().filter(x=>(x.page||'_')===pid); }
+function nextVerNo(){ const vs=pageVersions(); return vs.length?Math.max(...vs.map(x=>x.v))+1:1; }
+function saveVersion(label,opts={}){
+  const vs=getVersions();
+  const v=opts.v ?? nextVerNo();
+  vs.push({ v, page:curPageId(), pageName:curPageName(), label:label||('V'+v), ts:new Date().toISOString(), els:JSON.parse(JSON.stringify(state.els)) });
+  setVersions(vs); return v;
+}
+function fmtTs(ts){ try{return new Date(ts).toLocaleString('th-TH')}catch(e){return ts} }
+
+function renderHistory(){
+  const vs=pageVersions().slice().sort((a,b)=>b.v-a.v);
+  const body=document.getElementById('histBody');
+  const head=document.querySelector('#histModal h3'); if(head) head.textContent='🕘 ประวัติเวอร์ชัน — หน้า: '+(curPageName()||'(หน้านี้)');
+  if(!vs.length){ body.innerHTML='<div class="empty">หน้านี้ยังไม่มีเวอร์ชันที่บันทึก</div>'; return; }
+  body.innerHTML=vs.map(x=>`
+    <div class="verRow" data-v="${x.v}">
+      <span class="vno">V${x.v}</span>
+      <div class="meta">
+        <div class="lbl">${x.label}</div>
+        <div class="sub">${fmtTs(x.ts)} · ${x.els.length} elements</div>
+      </div>
+      <button class="btn" data-act="load">โหลด</button>
+      <button class="btn danger" data-act="del">ลบ</button>
+    </div>`).join('');
+  const pid=curPageId();
+  body.querySelectorAll('.verRow').forEach(row=>{
+    const v=+row.dataset.v;
+    row.querySelector('[data-act="load"]').onclick=()=>{
+      const ver=getVersions().find(z=>z.v===v && (z.page||'_')===pid); if(!ver)return;
+      loadTemplate(ver.els); closeHistory();
+    };
+    row.querySelector('[data-act="del"]').onclick=()=>{
+      const ver=getVersions().find(z=>z.v===v && (z.page||'_')===pid);
+      if(!confirm('ลบ V'+v+' "'+ver.label+'"?'))return;
+      setVersions(getVersions().filter(z=>!(z.v===v && (z.page||'_')===pid))); renderHistory();
+    };
+  });
+}
+const histModal=document.getElementById('histModal');
+function openHistory(){ renderHistory(); histModal.classList.add('open'); }
+function closeHistory(){ histModal.classList.remove('open'); }
+document.getElementById('btnHistory').onclick=openHistory;
+document.getElementById('histClose').onclick=closeHistory;
+histModal.onclick=e=>{ if(e.target===histModal) closeHistory(); };
+document.getElementById('btnSaveVersion').onclick=()=>{
+  if(!state.els.length){ alert('ยังไม่มี element บนกระดาน'); return; }
+  const def='V'+nextVerNo();
+  const label=prompt('ชื่อ/หมายเหตุของเวอร์ชันนี้:', def); if(label===null) return;
+  const v=saveVersion(label||def);
+  alert('บันทึกเป็น V'+v+' แล้ว — ดูได้จากปุ่ม 🕘 ประวัติ');
+};
+
+/* ============================================================
+   Undo / Redo — เก็บ snapshot ของกระดานทุก action ย้อนกลับได้เรื่อยๆ
+   wrap save() เพื่อบันทึกประวัติ (ไม่แตะ body save/load เดิม)
+   ============================================================ */
+const _save0=save, _select0=select;
+let undoStack=[], redoStack=[], prevState=null, suppressHistory=true;
+const MAX_HISTORY=200;
+function snapshot(){ return JSON.stringify({els:state.els, seq:state.seq}); }
+function restoreSnapshot(str){
+  const d=JSON.parse(str);
+  state.els=d.els; state.seq=d.seq||0; state.selected=null; state.multi=[];
+  canvas.innerHTML='';
+  inspectorBody.innerHTML='<div class="empty">เลือก element เพื่อแก้ไข</div>';
+  state.els.forEach(renderEl);
+}
+function updateUndoButtons(){
+  const u=document.getElementById('btnUndo'), r=document.getElementById('btnRedo');
+  if(u) u.disabled=!undoStack.length;
+  if(r) r.disabled=!redoStack.length;
+}
+
+// wrap: refresh Element List + บันทึกประวัติทุกครั้งที่ state เปลี่ยน
+save=function(){
+  _save0();
+  if(typeof pages!=='undefined' && pages) pagesPersistCurrent();   // sync หน้าปัจจุบัน
+  if(!suppressHistory){
+    if(prevState!==null){ undoStack.push(prevState); if(undoStack.length>MAX_HISTORY) undoStack.shift(); }
+    redoStack.length=0;            // มี action ใหม่ → ล้าง redo
+  }
+  prevState=snapshot();
+  renderElementList(); updateUndoButtons(); restack();
+};
+select=function(id){ state.multi=[id]; document.querySelectorAll('.el.multi').forEach(n=>n.classList.remove('multi')); _select0(id); renderElementList(); };
+
+function applyHistory(fromStack,toStack){
+  if(!fromStack.length) return;
+  toStack.push(snapshot());
+  suppressHistory=true;
+  restoreSnapshot(fromStack.pop());
+  _save0();                        // persist สถานะที่ย้อน
+  suppressHistory=false;
+  prevState=snapshot();
+  if(typeof pages!=='undefined' && pages) pagesPersistCurrent();
+  renderElementList(); updateUndoButtons(); restack();
+}
+function doUndo(){ applyHistory(undoStack, redoStack); }
+function doRedo(){ applyHistory(redoStack, undoStack); }
+
+renderElementList();
+
+load();
+// เปิดครั้งแรก: บังคับโหลด design หลักของแอป (map จาก TaskFlow UI) + seed เป็น V1
+if(!localStorage.getItem('tf_seeded')){
+  loadTemplate(JSON.parse(JSON.stringify(TASKFLOW_DESIGN)),{confirmReplace:false});
+  if(getVersions().length===0) saveVersion('map จาก TaskFlow UI (index.html)',{v:1});
+  localStorage.setItem('tf_seeded','1');
+}
+
+// migrate → โมเดลมาตรฐาน: ล้าง lock เก่า (ที่เคยแปลว่า "ผูก") ให้เป็น "ไม่ล็อก ไม่ซ่อน" ครั้งเดียว
+if(!localStorage.getItem('tf_model_std')){
+  state.els.forEach(e=>{ e.locked=false; e.hidden=false; });
+  state.els.forEach(renderEl); save();
+  localStorage.setItem('tf_model_std','1');
+}
+
+// ตั้งจุดเริ่มประวัติหลัง boot เสร็จ (ไม่นับการ seed เป็น action)
+suppressHistory=false;
+prevState=snapshot();
+undoStack.length=0; redoStack.length=0; updateUndoButtons();
+
+/* ============================================================
+   ฟังก์ชันสำหรับนักออกแบบจริง (DnD palette · Settings · Align · inline edit · keyboard)
+   ============================================================ */
+
+// ---- helper: element ที่กำลังเลือก (เดี่ยว/หลายชิ้น) ----
+function selectedEls(){ return (state.multi.length>1?state.multi:(state.selected?[state.selected]:[])).map(id=>state.els.find(e=>e.id===id)).filter(Boolean); }
+
+// ---- UAT-1: Add palette แบบ Drag & Drop ----
+function addElementAt(type,x,y){
+  const def=CATALOG[type]; if(!def) return;
+  const el={ id:'el_'+(++state.seq), type, name:def.label+' '+state.seq, x:Math.max(0,x), y:Math.max(0,y), w:def.w, h:def.h, text:def.text, style:JSON.parse(JSON.stringify(def.style)), mapsTo:null, locked:false, hidden:false };
+  state.els.push(el); renderEl(el); select(el.id); save(); return el;
+}
+const addPaletteEl=document.getElementById('addPalette');
+Object.entries(CATALOG).forEach(([t,def])=>{
+  const chip=document.createElement('div'); chip.className='add-chip'; chip.draggable=true; chip.dataset.type=t;
+  chip.innerHTML=`<span class="ic">${def.icon}</span> ${def.label}`;
+  chip.addEventListener('dragstart',e=>{ e.dataTransfer.setData('text/eltype',t); e.dataTransfer.effectAllowed='copy'; });
+  chip.addEventListener('click',()=>{ const cr=canvas.getBoundingClientRect(); addElementAt(t, snapV(60+stage.scrollLeft), snapV(60+stage.scrollTop)); });
+  addPaletteEl.appendChild(chip);
+});
+const stage=document.getElementById('stage');
+canvas.addEventListener('dragover',e=>{ e.preventDefault(); e.dataTransfer.dropEffect='copy'; canvas.classList.add('drop-hint'); });
+canvas.addEventListener('dragleave',e=>{ if(e.target===canvas) canvas.classList.remove('drop-hint'); });
+canvas.addEventListener('drop',e=>{
+  e.preventDefault(); canvas.classList.remove('drop-hint');
+  const t=e.dataTransfer.getData('text/eltype'); if(!t||!CATALOG[t]) return;
+  const cr=canvas.getBoundingClientRect();
+  addElementAt(t, snapV(e.clientX-cr.left), snapV(e.clientY-cr.top));
+});
+
+// ---- UAT-2: Settings (ใช้จริง: snap/grid/แสดงกริด/กว้างกระดาน) ----
+function applySettings(){
+  canvas.style.width=settings.canvasW+'px';
+  if(settings.showGrid){
+    const s=settings.grid;
+    canvas.style.backgroundImage='linear-gradient(90deg,#00000010 1px,transparent 1px),linear-gradient(#00000010 1px,transparent 1px)';
+    canvas.style.backgroundSize=s+'px '+s+'px';
+  } else canvas.style.backgroundImage='none';
+}
+const pop=document.getElementById('settingsPop');
+const $=id=>document.getElementById(id);
+function syncSettingsUI(){ $('setSnap').checked=settings.snap; $('setGrid').value=settings.grid; $('setShowGrid').checked=settings.showGrid; $('setCanvasW').value=settings.canvasW; }
+$('btnSettings').onclick=()=>{ syncSettingsUI(); pop.classList.toggle('open'); };
+$('setClose').onclick=()=>pop.classList.remove('open');
+$('setSnap').onchange=()=>{ settings.snap=$('setSnap').checked; saveSettings(); };
+$('setGrid').oninput=()=>{ settings.grid=Math.max(1,+$('setGrid').value||5); saveSettings(); applySettings(); };
+$('setShowGrid').onchange=()=>{ settings.showGrid=$('setShowGrid').checked; saveSettings(); applySettings(); };
+$('setCanvasW').oninput=()=>{ settings.canvasW=Math.max(320,+$('setCanvasW').value||1280); saveSettings(); applySettings(); };
+
+// ---- UAT-4: Align / Distribute toolbar (multi-select) ----
+const alignBar=document.getElementById('alignBar');
+[['⬅','left','ชิดซ้าย'],['⬍','hcenter','กึ่งกลางแนวนอน'],['➡','right','ชิดขวา'],['|','sep'],['⬆','top','ชิดบน'],['↔','vcenter','กึ่งกลางแนวตั้ง'],['⬇','bottom','ชิดล่าง'],['|','sep'],['↹','hdist','กระจายแนวนอน'],['⇅','vdist','กระจายแนวตั้ง']].forEach(([icon,act,title])=>{
+  if(act==='sep'){ const s=document.createElement('span'); s.className='sep'; alignBar.appendChild(s); return; }
+  const b=document.createElement('button'); b.textContent=icon; b.title=title; b.onclick=()=>doAlign(act); alignBar.appendChild(b);
+});
+function updateAlignBar(){ if(alignBar) alignBar.classList.toggle('show', selectedEls().length>1); }
+function doAlign(act){
+  const els=selectedEls().filter(e=>!e.locked); if(els.length<2) return;
+  const minX=Math.min(...els.map(e=>e.x)), maxX=Math.max(...els.map(e=>e.x+e.w));
+  const minY=Math.min(...els.map(e=>e.y)), maxY=Math.max(...els.map(e=>e.y+e.h));
+  const cX=(minX+maxX)/2, cY=(minY+maxY)/2;
+  if(act==='hdist'||act==='vdist'){
+    const k=act==='hdist'?'x':'y';
+    const sorted=[...els].sort((a,b)=>a[k]-b[k]);
+    const span=sorted[sorted.length-1][k]-sorted[0][k], gap=span/(sorted.length-1);
+    sorted.forEach((e,i)=>{ if(i>0&&i<sorted.length-1) e[k]=Math.round(sorted[0][k]+gap*i); });
+  } else els.forEach(e=>{
+    if(act==='left') e.x=minX; else if(act==='right') e.x=maxX-e.w; else if(act==='hcenter') e.x=Math.round(cX-e.w/2);
+    else if(act==='top') e.y=minY; else if(act==='bottom') e.y=maxY-e.h; else if(act==='vcenter') e.y=Math.round(cY-e.h/2);
+  });
+  els.forEach(renderEl); save();
+}
+
+// ---- UAT-5: แก้ข้อความ inline ----
+function startInlineEdit(node, el){
+  select(el.id);
+  const content=node.querySelector('.content');
+  content.contentEditable='true'; content.style.outline='2px solid var(--accent)'; content.style.cursor='text'; content.focus();
+  try{ const r=document.createRange(); r.selectNodeContents(content); const s=window.getSelection(); s.removeAllRanges(); s.addRange(r); }catch(e){}
+  const fin=()=>{ content.contentEditable='false'; content.style.outline='none'; content.style.cursor=''; el.text=content.textContent; renderEl(el); save(); content.removeEventListener('blur',fin); content.removeEventListener('keydown',onKey); };
+  const onKey=k=>{ k.stopPropagation(); if(k.key==='Enter'){k.preventDefault();content.blur();} if(k.key==='Escape'){content.textContent=el.text;content.blur();} };
+  content.addEventListener('blur',fin); content.addEventListener('keydown',onKey);
+}
+
+// ---- UAT-3: คีย์บอร์ด (nudge / duplicate / copy-paste / select-all) ----
+let clipboard=[];
+function duplicateSel(){ const sel=selectedEls(); if(!sel.length)return; const cp=sel.map(el=>{const c=JSON.parse(JSON.stringify(el));c.id='el_'+(++state.seq);c.x+=20;c.y+=20;c.name=el.name+' copy';c.mapsTo=null;c.locked=false;return c;}); cp.forEach(c=>{state.els.push(c);renderEl(c);}); setMulti(cp.map(c=>c.id)); save(); }
+function pasteClip(){ if(!clipboard.length)return; const cp=clipboard.map(el=>{const c=JSON.parse(JSON.stringify(el));c.id='el_'+(++state.seq);c.x+=20;c.y+=20;c.mapsTo=null;return c;}); cp.forEach(c=>{state.els.push(c);renderEl(c);}); setMulti(cp.map(c=>c.id)); save(); }
+document.addEventListener('keydown',e=>{
+  if(document.activeElement.tagName==='INPUT'||document.activeElement.isContentEditable) return;
+  const sel=selectedEls();
+  if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key) && sel.length){
+    e.preventDefault(); const st=e.shiftKey?10:1;
+    const dx=e.key==='ArrowRight'?st:e.key==='ArrowLeft'?-st:0, dy=e.key==='ArrowDown'?st:e.key==='ArrowUp'?-st:0;
+    sel.forEach(el=>{ if(!el.locked){ el.x=Math.max(0,el.x+dx); el.y=Math.max(0,el.y+dy); renderEl(el);} }); save();
+    if(state.selected) renderInspector(state.els.find(z=>z.id===state.selected));
+  } else if(e.ctrlKey||e.metaKey){
+    const k=e.key.toLowerCase();
+    if(k==='d'){ e.preventDefault(); duplicateSel(); }
+    else if(k==='c'){ clipboard=sel.map(el=>JSON.parse(JSON.stringify(el))); }
+    else if(k==='v'){ e.preventDefault(); pasteClip(); }
+    else if(k==='a'){ e.preventDefault(); setMulti(state.els.filter(el=>!el.hidden).map(el=>el.id)); }
+  }
+});
+
+// ---- Pages: render / switch / add / rename / delete ----
+function renderPageList(){
+  const wrap=document.getElementById('pageList'); if(!wrap||!pages) return;
+  wrap.innerHTML=pages.list.map(p=>`
+    <div class="page-item ${p.id===pages.active?'active':''}" data-pid="${p.id}">
+      <span class="ic">📄</span>
+      <div class="pn">${p.name}${p.route?`<div class="rt">${p.route}</div>`:''}</div>
+      <span class="pdel" data-del="${p.id}" title="ลบหน้า">🗑</span>
+    </div>`).join('');
+  wrap.querySelectorAll('.page-item').forEach(it=>{
+    it.onclick=()=>switchPage(it.dataset.pid);
+    it.querySelector('.pn').ondblclick=ev=>{ ev.stopPropagation(); const p=pages.list.find(x=>x.id===it.dataset.pid); const nn=prompt('ชื่อหน้า:',p.name); if(nn){ p.name=nn.trim()||p.name; setPages(pages); renderPageList(); } };
+  });
+  wrap.querySelectorAll('.pdel').forEach(b=>{ b.onclick=ev=>{ ev.stopPropagation(); deletePage(b.dataset.del); }; });
+}
+function loadPageIntoState(id){
+  const d=(pages.data[id]||{els:[],seq:0});
+  canvas.innerHTML=''; state.els=JSON.parse(JSON.stringify(d.els||[])); state.seq=d.seq||0;
+  state.selected=null; state.multi=[];
+  inspectorBody.innerHTML='<div class="empty">เลือก element เพื่อแก้ไข</div>';
+  state.els.forEach(renderEl);
+  // reset undo ต่อหน้า
+  undoStack.length=0; redoStack.length=0; prevState=snapshot(); updateUndoButtons();
+  save(); renderElementList();
+}
+function switchPage(id){
+  if(!pages||id===pages.active){ return; }
+  pagesPersistCurrent();            // เก็บหน้าเดิมก่อน
+  pages.active=id; setPages(pages);
+  loadPageIntoState(id);
+  renderPageList();
+}
+function addPage(){
+  const name=prompt('ชื่อหน้าใหม่:','New Page'); if(name===null) return;
+  const route=prompt('route/URL ของหน้านี้ (ไม่ใส่ก็ได้):','')||'';
+  pagesPersistCurrent();
+  const id='pg_'+(Object.keys(pages.data).length+1)+'_'+pages.list.length;
+  pages.list.push({id,name:name.trim()||'New Page',route});
+  pages.data[id]={els:[],seq:0};
+  pages.active=id; setPages(pages);
+  loadPageIntoState(id); renderPageList();
+}
+function deletePage(id){
+  if(pages.list.length<=1){ alert('ต้องมีอย่างน้อย 1 หน้า'); return; }
+  const p=pages.list.find(x=>x.id===id); if(!p) return;
+  if(!confirm('ลบหน้า "'+p.name+'" ?')) return;
+  pages.list=pages.list.filter(x=>x.id!==id); delete pages.data[id];
+  if(pages.active===id) pages.active=pages.list[0].id;
+  setPages(pages); loadPageIntoState(pages.active); renderPageList();
+}
+document.getElementById('btnAddPage').onclick=addPage;
+
+// init pages: ครั้งแรกสร้างหน้าแรกจาก els ที่โหลดอยู่ (mapped TaskFlow)
+pages=getPages();
+if(!pages){
+  pages={ active:'pg_home', list:[{id:'pg_home', name:'TaskFlow (mapped)', route:'/'}], data:{ pg_home:{els:JSON.parse(JSON.stringify(state.els)), seq:state.seq} } };
+  setPages(pages);
+  // backfill version เก่าที่ยังไม่มี page → ผูกกับหน้าแรก
+  const vs=getVersions(); let ch=false; vs.forEach(v=>{ if(!v.page){ v.page='pg_home'; v.pageName='TaskFlow (mapped)'; ch=true; } }); if(ch) setVersions(vs);
+} else {
+  loadPageIntoState(pages.active);
+}
+renderPageList();
+
+applySettings();
+
+document.getElementById('btnUndo').onclick=doUndo;
+document.getElementById('btnRedo').onclick=doRedo;
+document.addEventListener('keydown',e=>{
+  if(document.activeElement.tagName==='INPUT') return;
+  const k=e.key.toLowerCase();
+  if((e.ctrlKey||e.metaKey)&&k==='z'){ e.preventDefault(); e.shiftKey?doRedo():doUndo(); }
+  else if((e.ctrlKey||e.metaKey)&&k==='y'){ e.preventDefault(); doRedo(); }
+});
+</script>
+</body>
+</html>

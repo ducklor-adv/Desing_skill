@@ -1,0 +1,132 @@
+{
+  "version": 1,
+  "els": [
+    {
+      "id": "el_1",
+      "type": "text",
+      "name": "Text 1",
+      "x": 40,
+      "y": 40,
+      "w": 200,
+      "h": 24,
+      "text": "ข้อความ",
+      "style": {
+        "fontSize": 14,
+        "fontWeight": 400,
+        "color": "#333333",
+        "bg": "transparent",
+        "radius": 0,
+        "padding": 2,
+        "border": "none",
+        "align": "left"
+      },
+      "mapsTo": null
+    },
+    {
+      "id": "el_2",
+      "type": "button",
+      "name": "Button 2",
+      "x": 40,
+      "y": 40,
+      "w": 120,
+      "h": 40,
+      "text": "ปุ่ม",
+      "style": {
+        "fontSize": 14,
+        "fontWeight": 600,
+        "color": "#ffffff",
+        "bg": "#4f8cff",
+        "radius": 8,
+        "padding": 8,
+        "border": "none",
+        "align": "center"
+      },
+      "mapsTo": null
+    },
+    {
+      "id": "el_3",
+      "type": "input",
+      "name": "Input 3",
+      "x": 40,
+      "y": 90,
+      "w": 115,
+      "h": 40,
+      "text": "",
+      "style": {
+        "fontSize": 14,
+        "fontWeight": 400,
+        "color": "#111111",
+        "bg": "#ffffff",
+        "radius": 6,
+        "padding": 8,
+        "border": "1px solid #cccccc",
+        "align": "left",
+        "placeholder": "กรอกข้อมูล..."
+      },
+      "mapsTo": null
+    },
+    {
+      "id": "el_4",
+      "type": "text",
+      "name": "Text 4",
+      "x": 40,
+      "y": 40,
+      "w": 200,
+      "h": 24,
+      "text": "ข้อความ",
+      "style": {
+        "fontSize": 14,
+        "fontWeight": 400,
+        "color": "#333333",
+        "bg": "transparent",
+        "radius": 0,
+        "padding": 2,
+        "border": "none",
+        "align": "left"
+      },
+      "mapsTo": null
+    },
+    {
+      "id": "el_5",
+      "type": "button",
+      "name": "Button 5",
+      "x": 40,
+      "y": 40,
+      "w": 120,
+      "h": 40,
+      "text": "ปุ่ม",
+      "style": {
+        "fontSize": 14,
+        "fontWeight": 600,
+        "color": "#ffffff",
+        "bg": "#ff4d9a",
+        "radius": 8,
+        "padding": 8,
+        "border": "none",
+        "align": "center"
+      },
+      "mapsTo": null
+    },
+    {
+      "id": "el_6",
+      "type": "image",
+      "name": "Image 6",
+      "x": 195,
+      "y": 45,
+      "w": 605,
+      "h": 100,
+      "text": "IMG",
+      "style": {
+        "fontSize": 12,
+        "fontWeight": 400,
+        "color": "#888888",
+        "bg": "#eeeeee",
+        "radius": 6,
+        "padding": 0,
+        "border": "1px dashed #cccccc",
+        "align": "center"
+      },
+      "mapsTo": null
+    }
+  ]
+}

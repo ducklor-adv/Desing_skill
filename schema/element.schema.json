@@ -1,0 +1,48 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://design-skill/schema/element.schema.json",
+  "title": "Design Skill Element",
+  "description": "ชิ้น UI หนึ่งชิ้นบนกระดานออกแบบ — สัญญาข้อมูลกลางที่ทุกฝ่ายพึ่งพา (id และ mapsTo คือจุดผูก ห้ามแก้พล่อยๆ)",
+  "type": "object",
+  "required": ["id", "type", "x", "y", "w", "h", "style"],
+  "additionalProperties": false,
+  "properties": {
+    "id":    { "type": "string", "pattern": "^el_[0-9]+$", "description": "ไอดีเฉพาะตัวบนกระดาน" },
+    "type":  { "type": "string", "enum": ["heading","text","button","input","image","card","box"] },
+    "name":  { "type": "string", "description": "ชื่อที่คนตั้ง (โชว์ใน Layers panel)" },
+    "x":     { "type": "number", "minimum": 0 },
+    "y":     { "type": "number", "minimum": 0 },
+    "w":     { "type": "number", "minimum": 1 },
+    "h":     { "type": "number", "minimum": 1 },
+    "text":  { "type": "string", "description": "ข้อความที่แสดง (ถ้ามี)" },
+    "mapsTo":{ "type": ["string","null"], "description": "CSS selector ชี้กลับ DOM จริง — กุญแจของการสวมดีไซน์กลับโค้ด" },
+    "locked":{ "type": "boolean", "default": false, "description": "ล็อก = กันเลือก/ขยับบน canvas (ยังเลือกจาก Layers panel ได้)" },
+    "hidden":{ "type": "boolean", "default": false, "description": "ซ่อนจาก canvas" },
+    "style": {
+      "type": "object",
+      "description": "รายละเอียดดีไซน์ทั้งหมดของ element",
+      "properties": {
+        "fontSize":   { "type": "number" },
+        "fontWeight": { "type": ["number","string"] },
+        "color":      { "type": "string" },
+        "bg":         { "type": "string", "description": "พื้นหลัง (สี hex หรือ 'transparent')" },
+        "radius":     { "type": "number" },
+        "padding":    { "type": "number" },
+        "border":     { "type": "string", "description": "CSS border เช่น '1px solid #ccc' หรือ 'none'" },
+        "align":      { "type": "string", "enum": ["left","center","right"] },
+        "placeholder":{ "type": "string", "description": "สำหรับ type=input" }
+      },
+      "additionalProperties": true
+    }
+  },
+  "examples": [
+    {
+      "id": "el_7", "type": "input", "name": "Task input",
+      "x": 54, "y": 150, "w": 461, "h": 41, "text": "",
+      "style": { "fontSize": 15, "fontWeight": 400, "color": "#1f2430", "bg": "#ffffff",
+                 "radius": 10, "padding": 11, "border": "1px solid #e6e9f0", "align": "left",
+                 "placeholder": "เพิ่มงานใหม่..." },
+      "mapsTo": "#taskInput", "locked": false, "hidden": false
+    }
+  ]
+}

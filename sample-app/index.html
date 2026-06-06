@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>TaskFlow — จัดการงานประจำวัน</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <!-- Header -->
+    <header class="app-header" data-el="header">
+      <div class="brand">
+        <span class="logo">✅</span>
+        <h1>TaskFlow</h1>
+      </div>
+      <div class="stats" data-el="stats">
+        <span class="stat"><b id="statTotal">0</b> ทั้งหมด</span>
+        <span class="stat"><b id="statDone">0</b> เสร็จ</span>
+        <span class="stat"><b id="statLeft">0</b> เหลือ</span>
+      </div>
+    </header>
+
+    <!-- Add task -->
+    <section class="add-bar" data-el="addBar">
+      <input id="taskInput" class="task-input" type="text" placeholder="เพิ่มงานใหม่... แล้วกด Enter" data-el="taskInput" />
+      <select id="prioritySelect" class="priority-select" data-el="prioritySelect">
+        <option value="low">ต่ำ</option>
+        <option value="medium" selected>กลาง</option>
+        <option value="high">สูง</option>
+      </select>
+      <button id="addBtn" class="btn-primary" data-el="addBtn">+ เพิ่มงาน</button>
+    </section>
+
+    <!-- Filters -->
+    <section class="filters" data-el="filters">
+      <button class="chip active" data-filter="all">ทั้งหมด</button>
+      <button class="chip" data-filter="active">ยังไม่เสร็จ</button>
+      <button class="chip" data-filter="done">เสร็จแล้ว</button>
+      <span class="spacer"></span>
+      <button id="clearDone" class="btn-ghost" data-el="clearDone">ล้างงานที่เสร็จ</button>
+    </section>
+
+    <!-- Task list -->
+    <main class="task-list" id="taskList" data-el="taskList">
+      <!-- tasks injected by JS -->
+    </main>
+
+    <div class="empty-state" id="emptyState" data-el="emptyState">
+      <div class="emoji">🗒️</div>
+      <p>ยังไม่มีงาน — เพิ่มงานแรกของคุณเลย!</p>
+    </div>
+
+    <footer class="app-footer">
+      <span>TaskFlow · เก็บข้อมูลในเครื่องของคุณ (localStorage)</span>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
